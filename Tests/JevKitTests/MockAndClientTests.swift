@@ -77,3 +77,8 @@ func clientMapsChoiceToRequestedOption() async throws {
     #expect(answer.confidence == 0.8)
     #expect(answer.metadata.model == "jev-latest")
 }
+
+@Test("Client can be configured with the default URLSession transport")
+func clientUsesDefaultTransport() throws {
+    _ = JevClient(configuration: try JevConfiguration(apiKey: "test-key"))
+}

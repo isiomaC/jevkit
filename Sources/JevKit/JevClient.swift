@@ -5,6 +5,11 @@ public struct JevClient: Sendable {
     private let configuration: JevConfiguration
     private let transport: any JevTransport
 
+    /// Creates a client that uses Foundation URLSession for live Jev requests.
+    public init(configuration: JevConfiguration) {
+        self.init(configuration: configuration, transport: URLSessionJevTransport(configuration: configuration))
+    }
+
     /// Creates a client using a caller-provided transport.
     public init(configuration: JevConfiguration, transport: any JevTransport) {
         self.configuration = configuration
