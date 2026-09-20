@@ -37,6 +37,20 @@ public struct NoulAnswer: Sendable {
     public let metadata: DecisionMetadata
 }
 
+/// The typed wire answers returned for a group of independent System One questions.
+///
+/// This preserves the server's one-request fan-out so an application can map each
+/// answer to its own domain type without making separate network calls.
+public struct BatchDecision: Sendable, Equatable {
+    public let answers: [String: WireAnswer]
+    public let metadata: DecisionMetadata
+
+    public init(answers: [String: WireAnswer], metadata: DecisionMetadata) {
+        self.answers = answers
+        self.metadata = metadata
+    }
+}
+
 /// A Score result across ordered descriptive levels.
 public struct ScoreAnswer: Sendable {
     /// Jev's probability-weighted score.

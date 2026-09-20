@@ -16,6 +16,25 @@ public struct JevClient: Sendable {
         self.transport = transport
     }
 
+    /// Evaluates independent System One questions against the same state in one request.
+    public func evaluate<State: Encodable & Sendable>(
+        state: State,
+        questions: [String: WireQuestion]
+    ) async throws -> BatchDecision {
+        guard !questions.isEmpty else {
+            throw JevError.invalidRequest("At least one question is required.")
+        }
+
+        let timedResponse = try await send(state: state, questions: questions)
+        guard Set(timedResponse.response.answers.keys) == Set(questions.keys) else {
+            throw JevError.invalidResponse
+        }
+        return BatchDecision(
+            answers: timedResponse.response.answers,
+            metadata: metadata(for: timedResponse.response, latency: timedResponse.latency)
+        )
+    }
+
     /// Asks Jev to select an option from a closed Swift set.
     public func choice<State: Encodable & Sendable, Option: RawRepresentable & Hashable & Sendable>(
         state: State,
@@ -85,8 +104,12 @@ public struct JevClient: Sendable {
     }
 
     private func send<State: Encodable & Sendable>(state: State, question: WireQuestion) async throws -> (response: JevResponse, latency: Duration) {
+        try await send(state: state, questions: ["decision": question])
+    }
+
+    private func send<State: Encodable & Sendable>(state: State, questions: [String: WireQuestion]) async throws -> (response: JevResponse, latency: Duration) {
         let state = try encode(state)
-        let request = JevRequest(state: state, model: configuration.model, questions: ["decision": question])
+        let request = JevRequest(state: state, model: configuration.model, questions: questions)
         let clock = ContinuousClock()
         let start = clock.now
         let response: JevResponse

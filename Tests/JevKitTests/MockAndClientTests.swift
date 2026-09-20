@@ -78,6 +78,34 @@ func clientMapsChoiceToRequestedOption() async throws {
     #expect(answer.metadata.model == "jev-latest")
 }
 
+@Test("Client evaluates independent questions in one request")
+func clientEvaluatesBatchQuestionsInOneRequest() async throws {
+    let response = JevResponse(
+        model: "jev-latest",
+        answers: [
+            "activity": .choice(choice: "coding", probabilities: ["coding": 1], confidence: 1),
+            "intervention": .noul(0.75),
+        ],
+        usage: Usage(inputTokens: 12, outputTokens: 3)
+    )
+    let transport = MockJevTransport(responses: [.success(response)])
+    let client = JevClient(
+        configuration: try JevConfiguration(apiKey: "test-key"),
+        transport: transport
+    )
+    let questions: [String: WireQuestion] = [
+        "activity": .choice(instructions: .string("Identify activity."), criteria: ["coding": .null]),
+        "intervention": .noul(instructions: .string("Would an intervention help?"), criteria: nil),
+    ]
+
+    let batch = try await client.evaluate(state: ["application": "Xcode"], questions: questions)
+
+    #expect(batch.answers == response.answers)
+    #expect(batch.metadata.model == "jev-latest")
+    #expect((await transport.recordedRequests()).count == 1)
+    #expect((await transport.recordedRequests()).first?.questions == questions)
+}
+
 @Test("Client can be configured with the default URLSession transport")
 func clientUsesDefaultTransport() throws {
     _ = JevClient(configuration: try JevConfiguration(apiKey: "test-key"))
